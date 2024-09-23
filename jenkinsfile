@@ -27,25 +27,26 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                script{
-                    docker.withRegistry('', 'DockerHubCred') {
-                    sh 'docker tag calculator maturiraghu/calculator:latest'
-                    sh 'docker push maturiraghu/calculator'
-                    }
-                 }
-            }
-        }
-
-   stage('Run Ansible Playbook') {
-            steps {
                 script {
-                    ansiblePlaybook(
-                        playbook: 'deploy.yml',
-                        inventory: 'inventory'
-                     )
+                    docker.withRegistry('', 'DockerHubCred') {
+                        sh 'docker tag calculator maturiraghu/calculator:latest'
+                        sh 'docker push maturiraghu/calculator:latest'
+                    }
                 }
             }
         }
 
+        stage('Run Ansible Playbook') {
+            steps {
+                script {
+                    // Uninstall conflicting packages if they exist
+                    sh '''
+                    pip uninstall -y docker-py docker
+                    pip install docker ansible
+                    ansible-playbook deploy.yml -i inventory
+                    '''
+                }
+            }
+        }
     }
 }
